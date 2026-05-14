@@ -198,4 +198,9 @@ This project is in active design. The specification is the source of truth — c
 
 ## License
 
-TBD — to be determined by project owner before public release.
+| Asset | License |
+|-------|---------|
+| `spec/musical-markdown-spec.md` | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) — free to share, adapt, and implement for any purpose with attribution |
+| `tools/`, `tests/` (all `.py` files) | [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) — includes explicit patent grant and patent retaliation clause |
+
+© 2026 km-vibecoder. See `LICENSE` (tools) and `LICENSE-SPEC.md` (specification) for full terms.

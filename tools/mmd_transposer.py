@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 km-vibecoder
 """
 Musical Markdown (.mmd) mathematical transformation tool — Spec v1.0 companion
 Usage:

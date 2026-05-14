@@ -1124,3 +1124,8 @@ DUAL VOICE      T1: V1notes // V2notes |
 
 *Musical Markdown (.mmd) Specification — Version 1.0 Draft*  
 *This document is open for extension. Propose additions via the `#AI:` annotation system or by filing issues against the spec repository.*
+
+---
+
+© 2026 km-vibecoder. Licensed under [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/).  
+You are free to share, adapt, and implement this specification for any purpose, including commercially, provided you give appropriate credit to the original author.

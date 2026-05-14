@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: Apache-2.0
+# Copyright 2026 km-vibecoder
 """
 .mmd Validator Test Suite
 Run with:  python tests/test_mmd_validator.py

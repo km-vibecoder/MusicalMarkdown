@@ -1,6 +1,8 @@
 # Musical Markdown (.mmd) — Project File Manifest
 ### Version 1.0 Draft
 
+**Licenses:** Specification — [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · Tools & Tests — [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0) · © 2026 km-vibecoder
+
 ---
 
 ## Files
