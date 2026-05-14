@@ -27,6 +27,7 @@ mmd/
 │   ├── mmd_validator.py         # Syntax validator / LLM spell-checker
 │   ├── mmd_to_midi.py           # MIDI exporter (requires midiutil)
 │   ├── mmd_transposer.py        # Transpose, invert, retrograde, augment, diminish
+│   ├── mmd_to_lilypond.py       # LilyPond exporter for PDF sheet music
 │   └── mmd_llm_workflow.md      # Guide: using the validator in LLM feedback loops
 │
 └── tests/
@@ -44,7 +45,7 @@ mmd/
 | Validator test suite | ✅ Complete | 64 tests, 100% passing |
 | LLM workflow guide | ✅ Complete | 3 integration patterns with code |
 | MIDI export | ✅ Complete | `mmd_to_midi.py` — midiutil, multi-track, dynamics |
-| Sheet music render | 🔲 Planned | `mmd_to_lilypond.py` — see roadmap |
+| Sheet music render | ✅ Complete | `mmd_to_lilypond.py` — LilyPond .ly, multi-staff, PDF-ready |
 | Transposition CLI | ✅ Complete | `mmd_transposer.py` — transpose, invert, retrograde, augment, diminish |
 | Example library | 🔲 Planned | `examples/` — validated reference scores |
 | LLM prompt library | 🔲 Planned | `mmd_prompts.md` — few-shot generation prompts |

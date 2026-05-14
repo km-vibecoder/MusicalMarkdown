@@ -134,10 +134,29 @@ Zero external dependencies (stdlib only).
 
 ---
 
+### `mmd_to_lilypond.py`
+**The LilyPond sheet music exporter.**
+Converts a validated `.mmd` file to a LilyPond `.ly` source file for high-quality PDF sheet music rendering. Render the output with `lilypond score.ly`.
+
+**Supports:** notes (SPN → LilyPond pitch with correct sharp/flat spelling), dotted durations, duration inheritance, rests (including R/M full-measure), chords (`<...>`), ties (`~`), grace notes (`\acciaccatura` / `\appoggiatura`), dynamics (`\mf`, `\f`, etc.), staccato/accent articulations, multi-staff output (one `\new Staff` per T-track), clef hints from `[CLEF:...]`, inline `[BPM]` / `[TIME]` / `[KEY]` / `[DYN]` / `[XPOSE]` commands, `@TITLE` / `@COMPOSER` / `@ARRANGER` / `@TRACKS` header fields.
+
+**Not yet:** tuplets, slurs, repeats with volta brackets, dual-voice `//`.
+
+**Usage:**
+```bash
+python tools/mmd_to_lilypond.py score.mmd              # writes score.ly
+python tools/mmd_to_lilypond.py score.mmd -o out.ly    # explicit path
+lilypond score.ly                                       # → score.pdf + score.midi
+```
+
+Exit codes: `0` = success, `1` = parse error, `2` = IO error, `3` = validation failure.
+Zero external dependencies (stdlib only).
+
+---
+
 ## Suggested Next Files
 
 | Filename | Purpose |
 |----------|---------|
-| `mmd_to_lilypond.py` | Render .mmd to LilyPond for PDF sheet music output |
 | `mmd_examples/` | A library of validated reference scores in common styles |
 | `mmd_prompts.md` | Curated system prompts and few-shot examples for LLM .mmd generation |
