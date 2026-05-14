@@ -25,6 +25,7 @@ mmd/
 │
 ├── tools/
 │   ├── mmd_validator.py         # Syntax validator / LLM spell-checker
+│   ├── mmd_to_midi.py           # MIDI exporter (requires midiutil)
 │   └── mmd_llm_workflow.md      # Guide: using the validator in LLM feedback loops
 │
 └── tests/
@@ -41,7 +42,7 @@ mmd/
 | Syntax validator | ✅ Complete | Zero deps, Python 3.9+, JSON + text output |
 | Validator test suite | ✅ Complete | 64 tests, 100% passing |
 | LLM workflow guide | ✅ Complete | 3 integration patterns with code |
-| MIDI export | 🔲 Planned | `mmd_to_midi.py` — see roadmap |
+| MIDI export | ✅ Complete | `mmd_to_midi.py` — midiutil, multi-track, dynamics |
 | Sheet music render | 🔲 Planned | `mmd_to_lilypond.py` — see roadmap |
 | Transposition CLI | 🔲 Planned | `mmd_transposer.py` — see roadmap |
 | Example library | 🔲 Planned | `examples/` — validated reference scores |

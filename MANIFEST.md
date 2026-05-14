@@ -86,11 +86,27 @@ The spec is the source of truth. The validator is an executable encoding of the 
 
 ---
 
+### `mmd_to_midi.py`
+**The MIDI exporter.**
+Converts a validated `.mmd` file to a standard `.mid` file using `midiutil`. Runs the validator as a pre-check by default (exit 3 on failure). Parses pitch, duration, duration-inheritance, dots, chords, ties, rests (including R/M), dynamics (→ MIDI velocity), XPOSE transposition, inline [BPM] and [TIME] command blocks, and multi-track scores. Lyric (L), percussion (P), and chord-symbol (C) tracks are silently skipped.
+
+**Usage:**
+```bash
+python tools/mmd_to_midi.py score.mmd              # writes score.mid
+python tools/mmd_to_midi.py score.mmd -o out.mid   # explicit output path
+python tools/mmd_to_midi.py score.mmd --no-validate  # skip validator pre-check
+echo "T1: C4/4;D4/4;E4/4;F4/4|" | python tools/mmd_to_midi.py -  # stdin
+```
+
+Exit codes: `0` = success, `1` = parse/MIDI error, `2` = IO error, `3` = validation failure.
+Requires: `midiutil` (`pip install midiutil` or use the project `.venv`).
+
+---
+
 ## Suggested Next Files
 
 | Filename | Purpose |
 |----------|---------|
-| `mmd_to_midi.py` | Convert a validated .mmd file to a standard MIDI file |
 | `mmd_to_lilypond.py` | Render .mmd to LilyPond for PDF sheet music output |
 | `mmd_transposer.py` | CLI tool for key transposition, inversion, and retrograde operations |
 | `mmd_examples/` | A library of validated reference scores in common styles |
