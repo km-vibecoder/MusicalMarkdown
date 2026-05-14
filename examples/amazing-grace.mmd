@@ -1,0 +1,55 @@
+# Musical Markdown (.mmd) — Example: Amazing Grace (Excerpt)
+#
+# "Amazing Grace" — John Newton (1779), public domain.
+# A two-hand piano arrangement of verse 1, G major, 3/4 waltz time.
+#
+# What this demonstrates:
+#   - Two synchronized T-tracks: right hand melody (T1) and left hand waltz bass (T2)
+#   - Waltz bass pattern: root quarter on beat 1, inner chord half on beats 2-3
+#   - Half-note chords in the left hand: [B3,D4]/2
+#   - Dotted half notes spanning a full 3/4 measure: G4/2.; ;
+#   - Two pickup measures (M1, M6) using rests and a single quarter-note pickup
+#   - Lyric track with rests (%) on pickup beats and held-beat markers (_) on sustained melody
+#   - Explicit accidentals: F#3 must be written out — @KEY: G is display-only in .mmd
+#
+# Run:  python tools/mmd_validator.py   examples/amazing-grace.mmd
+#       python tools/mmd_to_midi.py     examples/amazing-grace.mmd
+#       python tools/mmd_to_lilypond.py examples/amazing-grace.mmd
+#       python tools/mmd_transposer.py  examples/amazing-grace.mmd --transpose -2
+
+@TITLE: Amazing Grace (Excerpt)
+@COMPOSER: John Newton (1779, public domain)
+@ARRANGER: Traditional arr.
+@BPM: 72
+@TIME: 3/4
+@KEY: G
+@TRACKS: T1=Right Hand, T2=Left Hand
+
+[CLEF:T1:treble]
+[CLEF:T2:bass]
+
+# ── Right Hand (Melody) ────────────────────────────────────────────────────────
+# 3/4 time: 3 beat slots per measure, 2 semicolons per measure.
+# G4/2. = dotted half note = 3 beats, fills one full 3/4 measure.
+# M1 and M6 are pickup measures: two rest slots, then the anacrusis quarter.
+
+T1: R/4;   R/4;   D4/4  | G4/2;  ;      G4/4  | B4/2;  ;      G4/4  |
+  | B4/2;  ;      A4/4  | G4/2.; ;             | R/4;   R/4;   D4/4  |
+  | G4/2;  ;      A4/4  | B4/2;  ;      D5/4  | B4/2.; ;             |.
+
+# ── Left Hand (Waltz Bass) ────────────────────────────────────────────────────
+# Pattern per measure: bass root /4 on beat 1, inner chord /2 on beats 2-3.
+# The trailing ; after each chord is the held-beat slot for beat 3.
+# [F#3,A3] uses an explicit sharp — key signature does not alter pitch names in .mmd.
+
+T2: R/4;   R/4;          R/4         | G2/4; [B3,D4]/2;   | C3/4; [E3,G3]/2;   |
+  | D3/4; [F#3,A3]/2;               | G2/4; [B3,D4]/2;   | R/4;  R/4;  R/4    |
+  | G2/4; [B3,D4]/2;                | D3/4; [F#3,A3]/2;  | G2/4; [B3,D4]/2;   |.
+
+# ── Lyrics — Verse 1 ─────────────────────────────────────────────────────────
+# L1 binds to T1 by default (spec §16.3), aligned beat-for-beat with T1.
+# % = lyric rest (pickup rests where T1 has R/4). _ = held beat (T1 sustains).
+
+L1: %;     %;     A-    | maz-;  _;     ing   | grace; _;     how   |
+  | sweet; _;     the   | sound; _;     _     | %;     %;     That  |
+  | sav-;  _;     a     | wretch; _;    like  | me;    _;     _     |.

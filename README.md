@@ -47,7 +47,7 @@ mmd/
 | MIDI export | ✅ Complete | `mmd_to_midi.py` — midiutil, multi-track, dynamics |
 | Sheet music render | ✅ Complete | `mmd_to_lilypond.py` — LilyPond .ly, multi-staff, PDF-ready |
 | Transposition CLI | ✅ Complete | `mmd_transposer.py` — transpose, invert, retrograde, augment, diminish |
-| Example library | 🔲 Planned | `examples/` — validated reference scores |
+| Example library | 🔄 In progress | `examples/` — 2 of 6–8 reference scores complete |
 | LLM prompt library | 🔲 Planned | `mmd_prompts.md` — few-shot generation prompts |
 
 ---

@@ -24,5 +24,25 @@ python tools/mmd_transposer.py  examples/twinkle-shared-melody.mmd --transpose +
 
 ---
 
-*More examples coming in Phase 3: two-hand piano, jazz chord comping,
+### `amazing-grace.mmd` — Two-Hand Piano, Waltz Time
+**Demonstrates:** two synchronized T-tracks · left-hand waltz bass pattern · half-note chords · dotted half notes filling a 3/4 measure · pickup measures · explicit accidentals in a key signature
+
+A nine-measure excerpt of "Amazing Grace" (John Newton, 1779 — public domain).
+`T1` carries the melody; `T2` plays a traditional waltz bass pattern (root quarter
+on beat 1, inner chord half note on beats 2–3). `L1` tracks verse 1 lyrics with
+`%` on pickup rests and `_` on sustained melody beats.
+
+The left-hand chord `[F#3,A3]/2` shows explicit sharps — `@KEY: G` is
+display-only in `.mmd`, so accidentals must always be written in full.
+
+```bash
+python tools/mmd_validator.py   examples/amazing-grace.mmd
+python tools/mmd_to_midi.py     examples/amazing-grace.mmd
+python tools/mmd_to_lilypond.py examples/amazing-grace.mmd
+python tools/mmd_transposer.py  examples/amazing-grace.mmd --transpose -2
+```
+
+---
+
+*More examples coming in Phase 3: jazz chord comping,
 transformation showcase (transposition / retrograde side-by-side).*
