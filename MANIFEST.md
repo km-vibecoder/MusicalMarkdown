@@ -103,11 +103,41 @@ Requires: `midiutil` (`pip install midiutil` or use the project `.venv`).
 
 ---
 
+### `mmd_transposer.py`
+**The mathematical transformation tool.**
+Applies spec §21.2 operations to a validated `.mmd` file, outputting a new `.mmd`. All operations can be chained and optionally scoped to specific tracks with `--track T1,T2`.
+
+| Operation | Flag | What it does |
+|-----------|------|-------------|
+| Transposition | `--transpose +N` | Shift all pitches N semitones; sharps used for output |
+| Inversion | `--invert C4` | Mirror pitches around an axis pitch |
+| Retrograde | `--retrograde` | Reverse measure order + within-measure note order |
+| Augmentation | `--augment` | Double note durations (`/4 → /2`); updates `@TIME` denominator |
+| Diminution | `--diminish` | Halve note durations (`/4 → /8`); updates `@TIME` denominator |
+
+Handles notes, chords, tied notes, grace notes, rests, and inline command blocks. Runs the validator before and after by default (exit 3 on pre-validation failure).
+
+**Usage:**
+```bash
+python tools/mmd_transposer.py score.mmd --transpose +5
+python tools/mmd_transposer.py score.mmd --invert C4
+python tools/mmd_transposer.py score.mmd --retrograde
+python tools/mmd_transposer.py score.mmd --augment
+python tools/mmd_transposer.py score.mmd --diminish
+python tools/mmd_transposer.py score.mmd --transpose +3 --track T1,T2
+python tools/mmd_transposer.py score.mmd --transpose +2 --augment   # chained
+python tools/mmd_transposer.py score.mmd --transpose +5 -o out.mmd
+```
+
+Exit codes: `0` = success, `1` = transform error, `2` = IO error, `3` = validation failure.
+Zero external dependencies (stdlib only).
+
+---
+
 ## Suggested Next Files
 
 | Filename | Purpose |
 |----------|---------|
 | `mmd_to_lilypond.py` | Render .mmd to LilyPond for PDF sheet music output |
-| `mmd_transposer.py` | CLI tool for key transposition, inversion, and retrograde operations |
 | `mmd_examples/` | A library of validated reference scores in common styles |
 | `mmd_prompts.md` | Curated system prompts and few-shot examples for LLM .mmd generation |
