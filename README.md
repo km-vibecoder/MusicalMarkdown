@@ -136,37 +136,34 @@ Each error object carries `track`, `measure`, `beat`, `message`, and `raw` — p
 
 ## Roadmap
 
-### Phase 2 — Transformation Toolchain
+### Phase 2 — Transformation Toolchain ✅ Complete
 
-**`tools/mmd_transposer.py`**
-CLI tool for mathematical operations on validated `.mmd` files. The fixed-grid structure makes these lossless:
-- Key transposition (`--transpose +3`)
-- Melodic inversion around an axis pitch (`--invert C4`)
-- Retrograde (time-reversal of a phrase or track)
-- Augmentation / diminution (doubling or halving all durations)
-- Time-shift (move a track N beats forward, fill gaps with rests)
+**`tools/mmd_to_midi.py`** — Export to standard MIDI (midiutil). Multi-track, dynamics, transposition.  
+**`tools/mmd_transposer.py`** — Transpose, invert, retrograde, augment, diminish. Zero dependencies.  
+**`tools/mmd_to_lilypond.py`** — Convert to LilyPond `.ly` for PDF sheet music. Render with `lilypond score.ly`.
 
-**`tools/mmd_to_midi.py`**
-Export a validated `.mmd` file to a standard `.mid` file using the `midiutil` library. Maps the pitch/duration/dynamic model directly to MIDI note-on/note-off events with velocity. Supports multi-track output, tempo changes, and time signature metadata. This makes `.mmd` files audible without a dedicated player.
-
-**`tools/mmd_to_lilypond.py`**
-Convert `.mmd` to LilyPond (`.ly`) source for high-quality PDF sheet music rendering. LilyPond is the standard open-source music engraver. This provides the human-readable visual output path without building a custom renderer.
-
-### Phase 3 — Content and Prompts
+### Phase 3 — Reference Content
 
 **`examples/`**
-A library of validated `.mmd` reference scores covering common styles and structures: simple melody, two-hand piano, SATB vocal, jazz chord comping, a lyric song. These serve as few-shot examples for LLM generation and as regression tests for the transformation tools.
+A library of 6–8 validated `.mmd` scores covering a range of styles: simple melody, two-hand piano, jazz chord comping, a lyric song, an SATB sketch, and at least one score that demonstrates a mathematical transformation (transposition or retrograde). Serves three purposes: few-shot material for LLM generation, regression tests for the transformation tools, and the content that every subsequent demo is built around. Nothing else in Phase 4 can be demoed without this.
 
 **`prompts/mmd_prompts.md`**
-Curated system prompts and few-shot templates for LLM `.mmd` generation. Includes the specification excerpt, worked examples of the most common error patterns and their fixes, and task-specific prompt variants (compose melody, harmonize, arrange for two hands, continue a phrase).
+Curated system prompts and few-shot templates for LLM `.mmd` generation. Covers the most common generation tasks (compose melody, harmonize, arrange for two hands, continue a phrase) and maps each common validator error to its root cause and fix — so an LLM receiving the JSON output can self-correct without additional guidance.
 
-### Phase 4 — Interactive Tools
+### Phase 4 — Demo Experience
+
+*Goal: close the gap between "interesting format" and "I get it" to under 10 seconds.*
 
 **`tools/mmd_player.html`**
-Browser-based `.mmd` player using the Web Audio API and/or Tone.js. Parse → synthesize directly in the browser. No server required.
+Browser-based `.mmd` player using Tone.js. Paste a score, click play, hear it — no installation, no server. This is the primary demo artifact: the format and the sound are visible simultaneously, making the value proposition self-evident. Hostable on GitHub Pages as a shareable link.
+
+**`demo/mmd_demo.ipynb`**
+Colab-ready Jupyter notebook demonstrating the full AI loop: plain-English description → Claude generates `.mmd` → validator checks → MIDI plays in-browser. No local setup required. This is where the deeper story lives — that AI music generation can be held to a verifiable, correctable standard. Links to the Claude API and uses the examples from Phase 3 as few-shot context.
+
+### Phase 5 — Interactive Editor
 
 **`tools/mmd_editor/`**
-A minimal web editor with live validation feedback (validator runs on keystroke via WebAssembly or a local API endpoint) and playback.
+A minimal web editor combining live validation feedback (validator runs on every keystroke) with the Phase 4 player for immediate playback. Targets users who want to write or edit `.mmd` directly rather than generate it via AI.
 
 ---
 
