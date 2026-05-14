@@ -1,0 +1,50 @@
+# Musical Markdown (.mmd) — Example: A Melody, Three Songs
+#
+# "Twinkle Twinkle Little Star", "Baa Baa Black Sheep", and the "ABC Song"
+# share the same melody (originally "Ah! vous dirai-je, maman", trad. French).
+# A single T1 melody track drives three synchronized lyric tracks.
+#
+# What this demonstrates:
+#   - Simple single-voice melody with duration inheritance
+#   - Half notes with mandatory held-beat placeholders (the bare ; after G4/2)
+#   - Three L-tracks bound to one T-track, beat-synchronized column by column
+#   - How the same rhythmic grid accommodates completely different text
+#
+# Run:  python tools/mmd_validator.py examples/twinkle-shared-melody.mmd
+#       python tools/mmd_to_midi.py   examples/twinkle-shared-melody.mmd
+#       python tools/mmd_to_lilypond.py examples/twinkle-shared-melody.mmd
+
+@TITLE: A Melody, Three Songs
+@COMPOSER: Traditional (arr.)
+@BPM: 112
+@TIME: 4/4
+@KEY: C
+@TRACKS: T1=Melody
+
+[CLEF:T1:treble]
+
+# ── Melody ────────────────────────────────────────────────────────────────────
+# Duration inheritance: after the first /4 in each measure, bare note names
+# carry that duration forward. The half notes (G4/2, C4/2, D4/2) are explicit.
+# Every measure has exactly 3 semicolons (4 beat slots).
+
+T1: C4/4;  C4;   G4;   G4   | A4/4;  A4;   G4/2; | F4/4;  F4;   E4;   E4   | D4/4;  D4;   C4/2; |
+  | G4/4;  G4;   F4;   F4   | E4/4;  E4;   D4/2; | G4/4;  G4;   F4;   F4   | E4/4;  E4;   D4/2; |
+  | C4/4;  C4;   G4;   G4   | A4/4;  A4;   G4/2; | F4/4;  F4;   E4;   E4   | D4/4;  D4;   C4/2; |.
+
+# ── Lyric tracks ─────────────────────────────────────────────────────────────
+# Each lyric slot aligns with the beat directly above it in T1.
+# Held beats (where T1 has an empty slot) use _ as a placeholder.
+# L1, L2, L3 all bind to T1 by default (spec §16.3).
+
+L1: Twin-; kle;  twin-; kle   | lit-;  tle;  star; _ | how;   I;    won-; der   | what;  you;  are;  _ |
+  | up;    a-;   bove;  the   | world; so;   high; _ | like;  a;    dia-; mond   | in;    the;  sky;  _ |
+  | Twin-; kle;  twin-; kle   | lit-;  tle;  star; _ | how;   I;    won-; der   | what;  you;  are;  _ |.
+
+L2: Baa;   baa;  black; sheep  | have;  you;  wool; _ | yes;   sir;  yes;  sir   | three; bags; full; _ |
+  | one;   for;  mas-;  ter   | one;   for;  dame; _ | one;   for;  lit-;  tle  | boy;   in;   lane; _ |
+  | Baa;   baa;  black; sheep  | have;  you;  wool; _ | yes;   sir;  yes;  sir   | three; bags; full; _ |.
+
+L3: A;     B;    C;     D      | E;     F;    G;    _ | H;     I;    J;    K     | L;     M;    N;    _ |
+  | now;   I;    know;  my    | A-;    B-;   Cs;   _ | next;  time; won't; you   | sing;  with; me;   _ |
+  | A;     B;    C;     D      | E;     F;    G;    _ | H;     I;    J;    K     | L;     M;    N;    _ |.
