@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MMD Player</title>
+<script src="https://unpkg.com/tone@14/build/Tone.js"></script>
+<style>
+/* ── Reset & tokens ──────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0d1117;
+  --surf:      #161b22;
+  --surf2:     #1c2128;
+  --border:    #2d333b;
+  --border2:   #444c56;
+  --accent:    #7c3aed;
+  --glow:      #a78bfa;
+  --play:      #22c55e;
+  --play-dim:  #14532d;
+  --t1:        #38bdf8;   /* sky-blue  — melody  */
+  --t2:        #fb923c;   /* amber     — harmony */
+  --text:      #cdd9e5;
+  --dim:       #636e7b;
+  --wkey:      #e8ecf4;
+  --bkey:      #111827;
+}
+html, body { background: var(--bg); color: var(--text); font-family: system-ui, sans-serif;
+             height: 100%; overflow-x: hidden; }
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+#header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--surf); border-bottom: 1px solid var(--border);
+}
+#header h1 { font-size: 1rem; font-weight: 700; letter-spacing: .06em; color: var(--glow); }
+.hbtns { display: flex; gap: 8px; }
+
+/* ── Controls ────────────────────────────────────────────────────────────── */
+#cbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 8px 18px;
+  background: var(--surf); border-bottom: 1px solid var(--border);
+}
+.cg { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--dim); }
+.cg label { white-space: nowrap; }
+select, input[type=number] {
+  background: var(--surf2); border: 1px solid var(--border);
+  border-radius: 5px; color: var(--text); padding: 3px 7px; font-size: .82rem;
+}
+input[type=range] { width: 80px; accent-color: var(--accent); }
+#bpm-val { min-width: 2.5em; text-align: right; font-weight: 600; color: var(--text);
+           font-variant-numeric: tabular-nums; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn {
+  padding: 5px 13px; border: 1px solid var(--border);
+  border-radius: 6px; background: var(--surf2); color: var(--text);
+  cursor: pointer; font-size: .82rem; transition: background .12s, border-color .12s;
+}
+.btn:hover { background: var(--border2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn.primary:hover { background: var(--glow); border-color: var(--glow); }
+
+/* Transport */
+#transport { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.tbtn {
+  width: 38px; height: 38px; border: none; border-radius: 50%;
+  font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: transform .1s, box-shadow .15s;
+}
+.tbtn:active { transform: scale(.91); }
+#btn-play { background: var(--accent); color: #fff; }
+#btn-play:hover { box-shadow: 0 0 14px var(--glow); }
+#btn-play.active { background: var(--play); animation: heartbeat .7s ease-in-out infinite; }
+#btn-stop { background: var(--surf2); color: var(--text); border: 1px solid var(--border); }
+#btn-stop:hover { background: var(--border2); }
+
+@keyframes heartbeat {
+  0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(34,197,94,0); }
+}
+
+/* ── Staff placeholder (v2 slot) ─────────────────────────────────────────── */
+#staff-slot {
+  margin: 14px 18px 2px;
+  height: 72px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; color: var(--dim); letter-spacing: .05em;
+}
+
+/* ── Grid ────────────────────────────────────────────────────────────────── */
+#grid-wrap { padding: 10px 18px 8px; overflow-x: auto; }
+
+.grid-row { display: flex; align-items: center; gap: 4px; margin-bottom: 5px; }
+
+.track-label {
+  width: 28px; flex-shrink: 0;
+  font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-align: center;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+.track-label.t1 { color: var(--t1); background: rgba(56,189,248,.1); }
+.track-label.t2 { color: var(--t2); background: rgba(251,146,60,.1); }
+
+.mgroup {
+  display: flex; gap: 3px;
+  padding: 6px 8px;
+  background: var(--surf); border: 1px solid var(--border);
+  border-radius: 9px;
+}
+
+.beat-cell {
+  width: 58px; height: 52px;
+  background: var(--surf2); border: 2px solid var(--border);
+  border-radius: 7px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  cursor: pointer; user-select: none;
+  transition: border-color .1s, background .1s, box-shadow .1s;
+  position: relative;
+}
+.beat-cell .beat-num {
+  font-size: .55rem; color: var(--dim); line-height: 1; position: absolute; top: 4px;
+}
+.beat-cell .note-txt {
+  font-family: 'Courier New', monospace; font-size: .95rem; font-weight: 700;
+  color: var(--dim); pointer-events: none;
+}
+.beat-cell:hover                  { border-color: var(--border2); background: #1e252f; }
+.beat-cell.has-note               { border-color: #3b4a60; }
+.beat-cell.has-note .note-txt     { color: var(--t1); }
+.beat-cell.t2-row.has-note .note-txt { color: var(--t2); }
+.beat-cell.selected               { border-color: var(--glow); background: #1c1433;
+                                    box-shadow: 0 0 0 2px rgba(167,139,250,.25); }
+.beat-cell.selected .note-txt     { color: var(--glow); }
+.beat-cell.playing                { border-color: var(--play); background: var(--play-dim);
+                                    box-shadow: 0 0 10px rgba(34,197,94,.35); }
+.beat-cell.playing .note-txt      { color: var(--play); }
+
+/* measure-number stripe above groups */
+.mgroup-wrap { display: flex; flex-direction: column; gap: 3px; }
+.mnum { font-size: .63rem; color: var(--dim); text-align: center; letter-spacing: .08em; }
+
+/* ── Piano section ───────────────────────────────────────────────────────── */
+#piano-section {
+  padding: 10px 18px 14px;
+  background: var(--surf); border-top: 1px solid var(--border);
+}
+.piano-top {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+}
+.oct-nav { display: flex; align-items: center; gap: 7px; }
+.oct-nav button {
+  width: 26px; height: 26px; border: 1px solid var(--border); border-radius: 4px;
+  background: var(--surf2); color: var(--text); cursor: pointer; font-size: .9rem;
+}
+.oct-nav button:hover { background: var(--border2); }
+#oct-label { min-width: 3.6em; text-align: center; font-size: .85rem;
+             font-weight: 600; color: var(--glow); }
+
+.piano-hints { font-size: .72rem; color: var(--dim); display: flex; gap: 14px; }
+.piano-hints kbd {
+  background: var(--surf2); border: 1px solid var(--border); border-radius: 3px;
+  padding: 1px 5px; font-size: .68rem; color: var(--text);
+}
+
+#keys-wrap {
+  position: relative; height: 106px;
+  /* width set by JS */
+}
+.wkey {
+  position: absolute; background: var(--wkey); border: 1px solid #888;
+  border-radius: 0 0 5px 5px; cursor: pointer; height: 100px; top: 0;
+  display: flex; align-items: flex-end; justify-content: center; padding-bottom: 4px;
+  font-size: .58rem; color: #666; user-select: none; transition: background .07s;
+  z-index: 1;
+}
+.wkey:hover  { background: #d0d8f0; }
+.wkey.down   { background: var(--glow); }
+.bkey {
+  position: absolute; background: var(--bkey); border-radius: 0 0 4px 4px;
+  cursor: pointer; height: 62px; top: 0; user-select: none;
+  transition: background .07s; z-index: 2;
+}
+.bkey:hover { background: #2d3a50; }
+.bkey.down  { background: var(--accent); }
+
+/* clear-note button near piano */
+#btn-clear {
+  margin-left: 10px;
+  padding: 4px 10px; font-size: .78rem; border-radius: 5px;
+  border: 1px solid var(--border); background: var(--surf2); color: var(--dim); cursor: pointer;
+}
+#btn-clear:hover { color: #f87171; border-color: #6b2222; background: #1a0e0e; }
+
+/* ── MMD Output panel ────────────────────────────────────────────────────── */
+#mmd-panel { border-top: 1px solid var(--border); }
+#mmd-tog {
+  width: 100%; text-align: left; background: var(--surf); border: none;
+  padding: 7px 18px; font-size: .78rem; color: var(--dim); cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+}
+#mmd-tog:hover { color: var(--text); }
+#mmd-out {
+  display: none; font-family: 'Courier New', monospace; font-size: .78rem;
+  color: #7ee8b2; background: #0a160d; padding: 10px 18px;
+  white-space: pre; overflow-x: auto; max-height: 160px; line-height: 1.55;
+}
+#mmd-out.open { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div id="header">
+  <h1>🎵 MMD Player</h1>
+  <div class="hbtns">
+    <button class="btn" onclick="newScore()">New Score</button>
+    <button class="btn primary" onclick="exportMMD()">Export .mmd</button>
+  </div>
+</div>
+
+<!-- ── Controls ───────────────────────────────────────────────────────────── -->
+<div id="cbar">
+  <div class="cg">
+    <label>Time</label>
+    <select id="sel-time" onchange="applySettings()">
+      <option value="4/4" selected>4/4</option>
+      <option value="3/4">3/4</option>
+      <option value="2/4">2/4</option>
+      <option value="6/8">6/8</option>
+    </select>
+  </div>
+  <div class="cg">
+    <label>Bars</label>
+    <select id="sel-bars" onchange="applySettings()">
+      <option value="2">2</option>
+      <option value="4" selected>4</option>
+      <option value="8">8</option>
+    </select>
+  </div>
+  <div class="cg">
+    <label>BPM <span id="bpm-val">120</span></label>
+    <input type="range" id="sl-bpm" min="40" max="240" value="120"
+           oninput="onBpm(this.value)">
+  </div>
+  <div id="transport">
+    <button class="tbtn" id="btn-play"  onclick="togglePlay()" title="Play  [Space]">▶</button>
+    <button class="tbtn" id="btn-stop"  onclick="stopAll()"    title="Stop  [Esc]">■</button>
+  </div>
+</div>
+
+<!-- ── Staff slot (v2) ────────────────────────────────────────────────────── -->
+<div id="staff-slot">Staff notation — coming in v2</div>
+
+<!-- ── Grid ───────────────────────────────────────────────────────────────── -->
+<div id="grid-wrap"><div id="grid"></div></div>
+
+<!-- ── Piano ──────────────────────────────────────────────────────────────── -->
+<div id="piano-section">
+  <div class="piano-top">
+    <div class="oct-nav">
+      <button onclick="shiftOct(-1)">◀</button>
+      <span id="oct-label">Oct 4</span>
+      <button onclick="shiftOct(+1)">▶</button>
+    </div>
+    <div class="piano-hints">
+      <span><kbd>← →</kbd> navigate</span>
+      <span><kbd>Del</kbd> clear note</span>
+      <span><kbd>Space</kbd> play/stop</span>
+    </div>
+    <button id="btn-clear" onclick="clearSelected()" title="Clear selected cell">✕ Clear</button>
+  </div>
+  <div id="keys-wrap"></div>
+</div>
+
+<!-- ── MMD output ─────────────────────────────────────────────────────────── -->
+<div id="mmd-panel">
+  <button id="mmd-tog" onclick="toggleMmd()">▶ &nbsp;MMD Output</button>
+  <pre id="mmd-out"></pre>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════════════════
+const S = {
+  beatsPerBar: 4,   // numerator
+  beatUnit:    4,   // denominator (4=quarter, 8=eighth)
+  numBars:     4,
+  bpm:         120,
+  octave:      4,
+  selTrack:    0,   // 0 = T1, 1 = T2
+  selBeat:     0,   // flat beat index within a track
+  playhead:   -1,
+  playing:    false,
+  // tracks[t][i] = { note: "C4" | null }
+  tracks:     [ [], [] ],
+};
+
+function totalSteps() { return S.numBars * S.beatsPerBar; }
+
+function initTracks() {
+  const n = totalSteps();
+  S.tracks = [
+    Array.from({length: n}, () => ({note: null})),
+    Array.from({length: n}, () => ({note: null})),
+  ];
+  S.selBeat = 0;
+  S.playhead = -1;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Audio (Tone.js)
+// ═══════════════════════════════════════════════════════════════════════════
+let audioReady = false, synth1, synth2, draw;
+
+async function initAudio() {
+  if (audioReady) return;
+  await Tone.start();
+  const rev = new Tone.Reverb({decay: 1.0, wet: 0.18}).toDestination();
+  synth1 = new Tone.PolySynth(Tone.Synth, {
+    oscillator: {type: 'triangle'},
+    envelope: {attack: 0.02, decay: 0.25, sustain: 0.45, release: 1.1}
+  }).connect(rev);
+  synth2 = new Tone.PolySynth(Tone.Synth, {
+    oscillator: {type: 'sine'},
+    envelope: {attack: 0.04, decay: 0.4, sustain: 0.35, release: 1.4}
+  }).connect(rev);
+  // lower volume for synth2 so melody stays on top
+  synth2.volume.value = -4;
+  draw = Tone.getDraw();
+  audioReady = true;
+}
+
+// preview a single note immediately
+async function previewNote(noteStr) {
+  await initAudio();
+  synth1.triggerAttackRelease(noteStr, '8n');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Playback
+// ═══════════════════════════════════════════════════════════════════════════
+let seq = null;
+
+async function togglePlay() {
+  if (S.playing) { stopAll(); return; }
+  await initAudio();
+
+  Tone.Transport.bpm.value = S.bpm;
+
+  const steps  = totalSteps();
+  const interval = `${S.beatUnit}n`;
+  const synths   = [synth1, synth2];
+  const noteDur  = `${S.beatUnit}n`;
+
+  seq = new Tone.Sequence((time, idx) => {
+    S.tracks.forEach((track, t) => {
+      const cell = track[idx];
+      if (cell?.note) synths[t].triggerAttackRelease(cell.note, noteDur, time);
+    });
+    draw.schedule(() => advancePlayhead(idx), time);
+  }, Array.from({length: steps}, (_, i) => i), interval);
+
+  seq.loop = true;
+  seq.start(0);
+  Tone.Transport.start();
+  S.playing = true;
+
+  const btn = document.getElementById('btn-play');
+  btn.textContent = '⏸';
+  btn.classList.add('active');
+}
+
+function stopAll() {
+  Tone.Transport.stop();
+  Tone.Transport.cancel(0);
+  if (seq) { seq.dispose(); seq = null; }
+  S.playing = false;
+  const prev = S.playhead;
+  S.playhead = -1;
+  if (prev >= 0) refreshBeat(0, prev), refreshBeat(1, prev);
+  const btn = document.getElementById('btn-play');
+  btn.textContent = '▶';
+  btn.classList.remove('active');
+}
+
+function advancePlayhead(idx) {
+  const prev = S.playhead;
+  S.playhead = idx;
+  if (prev >= 0) { refreshBeat(0, prev); refreshBeat(1, prev); }
+  refreshBeat(0, idx); refreshBeat(1, idx);
+}
+
+function onBpm(v) {
+  S.bpm = +v;
+  document.getElementById('bpm-val').textContent = v;
+  if (S.playing) Tone.Transport.bpm.value = S.bpm;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Grid
+// ═══════════════════════════════════════════════════════════════════════════
+function renderGrid() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+
+  ['T1', 'T2'].forEach((label, t) => {
+    const row = document.createElement('div');
+    row.className = 'grid-row';
+
+    const lbl = document.createElement('div');
+    lbl.className = `track-label t${t+1}`;
+    lbl.textContent = label;
+    row.appendChild(lbl);
+
+    for (let m = 0; m < S.numBars; m++) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mgroup-wrap';
+
+      const mn = document.createElement('div');
+      mn.className = 'mnum';
+      mn.textContent = `M${m + 1}`;
+      wrap.appendChild(mn);
+
+      const mgrp = document.createElement('div');
+      mgrp.className = 'mgroup';
+
+      for (let b = 0; b < S.beatsPerBar; b++) {
+        const idx = m * S.beatsPerBar + b;
+        mgrp.appendChild(makeBeatCell(t, idx, b + 1));
+      }
+      wrap.appendChild(mgrp);
+      row.appendChild(wrap);
+    }
+    g.appendChild(row);
+  });
+}
+
+function makeBeatCell(track, idx, beatNum) {
+  const el = document.createElement('div');
+  el.className = `beat-cell${track === 1 ? ' t2-row' : ''}`;
+  el.dataset.track = track;
+  el.dataset.idx   = idx;
+
+  const bn = document.createElement('span');
+  bn.className = 'beat-num';
+  bn.textContent = beatNum;
+  el.appendChild(bn);
+
+  const nt = document.createElement('span');
+  nt.className = 'note-txt';
+  el.appendChild(nt);
+
+  applyBeatClass(el, track, idx);
+  updateBeatLabel(nt, track, idx);
+
+  el.addEventListener('click', () => {
+    S.selTrack = track;
+    selectBeat(idx);
+  });
+  return el;
+}
+
+function getCell(track, idx) {
+  return document.querySelector(`.beat-cell[data-track="${track}"][data-idx="${idx}"]`);
+}
+
+function refreshBeat(track, idx) {
+  const el = getCell(track, idx);
+  if (!el) return;
+  applyBeatClass(el, track, idx);
+  updateBeatLabel(el.querySelector('.note-txt'), track, idx);
+}
+
+function applyBeatClass(el, track, idx) {
+  const note    = S.tracks[track][idx]?.note;
+  const isSel   = track === S.selTrack && idx === S.selBeat;
+  const isPlay  = idx === S.playhead;
+  el.classList.toggle('has-note', !!note);
+  el.classList.toggle('selected', isSel);
+  el.classList.toggle('playing',  isPlay);
+}
+
+function updateBeatLabel(span, track, idx) {
+  span.textContent = S.tracks[track][idx]?.note || '·';
+}
+
+function selectBeat(idx) {
+  const prev = S.selBeat;
+  S.selBeat = idx;
+  refreshBeat(0, prev); refreshBeat(1, prev);
+  refreshBeat(0, idx);  refreshBeat(1, idx);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Note entry
+// ═══════════════════════════════════════════════════════════════════════════
+function setNote(track, idx, note) {
+  S.tracks[track][idx] = {note};
+  refreshBeat(track, idx);
+  updateMmd();
+}
+
+function clearNote(track, idx) {
+  S.tracks[track][idx] = {note: null};
+  refreshBeat(track, idx);
+  updateMmd();
+}
+
+function clearSelected() {
+  clearNote(S.selTrack, S.selBeat);
+}
+
+function advance() {
+  if (S.selBeat < totalSteps() - 1) selectBeat(S.selBeat + 1);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Piano keyboard
+// ═══════════════════════════════════════════════════════════════════════════
+const WHITE = ['C','D','E','F','G','A','B'];
+// [note, fractional offset from C in white-key widths]
+const BLACK = [
+  {n:'C#', x: 0.63},
+  {n:'D#', x: 1.63},
+  null,              // gap E→F
+  {n:'F#', x: 3.63},
+  {n:'G#', x: 4.63},
+  {n:'A#', x: 5.63},
+];
+const WW = 50, BW = 30; // white-key width, black-key width (px)
+
+function renderPiano() {
+  const wrap = document.getElementById('keys-wrap');
+  wrap.style.width = `${WHITE.length * WW}px`;
+  wrap.innerHTML   = '';
+
+  WHITE.forEach((n, i) => {
+    const k = el('div', 'wkey');
+    k.style.cssText = `left:${i*WW}px; width:${WW-2}px;`;
+    k.textContent   = n;
+    k.dataset.note  = `${n}${S.octave}`;
+    k.addEventListener('pointerdown', e => { e.preventDefault(); pianoHit(k.dataset.note, k); });
+    wrap.appendChild(k);
+  });
+
+  BLACK.forEach(bk => {
+    if (!bk) return;
+    const k = el('div', 'bkey');
+    k.style.cssText = `left:${bk.x*WW - BW/2}px; width:${BW}px;`;
+    k.dataset.note  = `${bk.n}${S.octave}`;
+    k.addEventListener('pointerdown', e => { e.preventDefault(); pianoHit(k.dataset.note, k); });
+    wrap.appendChild(k);
+  });
+}
+
+function pianoHit(noteStr, keyEl) {
+  keyEl.classList.add('down');
+  setTimeout(() => keyEl.classList.remove('down'), 200);
+  previewNote(noteStr);
+  setNote(S.selTrack, S.selBeat, noteStr);
+  advance();
+}
+
+function shiftOct(d) {
+  S.octave = Math.max(1, Math.min(8, S.octave + d));
+  document.getElementById('oct-label').textContent = `Oct ${S.octave}`;
+  renderPiano();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MMD output
+// ═══════════════════════════════════════════════════════════════════════════
+function buildMMD() {
+  const n = S.beatsPerBar, d = S.beatUnit, bpm = S.bpm;
+  let out = `@BPM: ${bpm}\n@TIME: ${n}/${d}\n@KEY: C\n`;
+
+  ['T1','T2'].forEach((lbl, t) => {
+    const cells = S.tracks[t];
+    // skip empty tracks
+    if (cells.every(c => !c.note)) return;
+
+    let line = `\n${lbl}: `;
+    cells.forEach((c, i) => {
+      line += c.note ? `${c.note}/${d}` : 'R';
+      const endOfBar = (i + 1) % n === 0;
+      if (i + 1 < cells.length) {
+        line += endOfBar ? ' |\n     ' : '; ';
+      }
+    });
+    line += ' |.';
+    out += line;
+  });
+  return out;
+}
+
+function updateMmd() {
+  document.getElementById('mmd-out').textContent = buildMMD();
+}
+
+let mmdOpen = false;
+function toggleMmd() {
+  mmdOpen = !mmdOpen;
+  document.getElementById('mmd-out').classList.toggle('open', mmdOpen);
+  document.getElementById('mmd-tog').firstChild.textContent = mmdOpen ? '▼' : '▶';
+}
+
+function exportMMD() {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buildMMD()], {type: 'text/plain'}));
+  a.download = 'score.mmd';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Settings changes
+// ═══════════════════════════════════════════════════════════════════════════
+function applySettings() {
+  if (S.playing) stopAll();
+  const [n, d] = document.getElementById('sel-time').value.split('/').map(Number);
+  S.beatsPerBar = n;
+  S.beatUnit    = d;
+  S.numBars     = +document.getElementById('sel-bars').value;
+  initTracks();
+  renderGrid();
+  updateMmd();
+}
+
+function newScore() {
+  if (!confirm('Clear the score and start fresh?')) return;
+  document.getElementById('sel-time').value = '4/4';
+  document.getElementById('sel-bars').value = '4';
+  document.getElementById('sl-bpm').value   = 120;
+  onBpm(120);
+  applySettings();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Keyboard shortcuts
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT') return;
+
+  const n = totalSteps();
+  if (e.key === 'ArrowRight')      { e.preventDefault(); selectBeat(Math.min(S.selBeat + 1, n - 1)); }
+  else if (e.key === 'ArrowLeft')  { e.preventDefault(); selectBeat(Math.max(S.selBeat - 1, 0)); }
+  else if (e.key === 'ArrowDown')  { e.preventDefault(); S.selTrack = 1; selectBeat(S.selBeat); }
+  else if (e.key === 'ArrowUp')    { e.preventDefault(); S.selTrack = 0; selectBeat(S.selBeat); }
+  else if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); clearSelected(); }
+  else if (e.key === ' ')          { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'Escape')     { stopAll(); }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Utility
+// ═══════════════════════════════════════════════════════════════════════════
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Boot
+// ═══════════════════════════════════════════════════════════════════════════
+applySettings();
+renderPiano();
+updateMmd();
+</script>
+</body>
+</html>
