@@ -74,4 +74,22 @@ python tools/mmd_transposer.py  examples/transformation-showcase.mmd --retrograd
 
 ---
 
-*More examples coming in Phase 3: jazz chord comping.*
+### `jazz-turnaround.mmd` — Jazz Chord Comping
+**Demonstrates:** four-note jazz voicings (Dm7, G7, Cmaj7, A7) · explicit accidentals in chords (C#3, Bb2) · sub-beat comp rhythm (`R/8,[chord]/8`) · walking bass with chromatic approach tones · C-track chord symbol annotations · `(arp)` modifier
+
+An 8-measure ii–V–I–VI turnaround in C (medium swing, 132 BPM) scored for
+three voices: melody, comping hand, and walking bass. The comping track
+alternates two patterns — beat-2 backbeat and beat-1 downbeat — with an
+off-beat anticipation on the "and-of-4" in every measure. The `R/8,[chord]/8`
+syntax within a single beat slot demonstrates sub-beat event packing (spec §8.2).
+
+The walking bass uses chromatic approach tones (`Bb2→B2` approaching C, `Bb2→A2`
+approaching A) — a core jazz bass technique written explicitly in .mmd since key
+signatures are display-only.
+
+```bash
+python tools/mmd_validator.py   examples/jazz-turnaround.mmd
+python tools/mmd_to_midi.py     examples/jazz-turnaround.mmd
+python tools/mmd_to_lilypond.py examples/jazz-turnaround.mmd
+python tools/mmd_transposer.py  examples/jazz-turnaround.mmd --transpose +2  # → D major
+```

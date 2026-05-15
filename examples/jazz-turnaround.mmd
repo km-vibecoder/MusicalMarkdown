@@ -1,0 +1,96 @@
+# Musical Markdown (.mmd) — Example: Jazz Turnaround
+#
+# "Midnight Changes" — 8 measures of a standard ii–V–I–VI turnaround in C,
+# scored for melody, comping hand, and walking bass.
+#
+# What this demonstrates:
+#   - Extended jazz chord voicings: Dm7, G7, Cmaj7, A7 as four-note []-chords
+#   - Explicit accidentals inside chords: C#3 (A7 major 3rd), Bb2 (bass passing tone)
+#   - Sub-beat comp rhythm: R/8,[chord]/8 places the chord on the "and" of a beat
+#   - Walking bass: chromatic approach tones (Bb2, B2) connecting chord roots
+#   - C-track carrying lead-sheet chord symbols aligned to the beat grid
+#   - Arpeggio modifier (arp) on the Cmaj7 downbeat, beat-2 comp
+#
+# Note: .mmd rhythms are exact — not swing. Apply swing quantization in your
+# DAW or sequencer after MIDI export for an authentic jazz feel.
+#
+# Chord progression (repeating 4-bar turnaround, played twice):
+#   Dm7  |  G7  |  Cmaj7  |  A7  |
+#    ii  |   V  |    I    |  VI7 |  (→ loops back to ii)
+#
+# Run:
+#   python tools/mmd_validator.py   examples/jazz-turnaround.mmd
+#   python tools/mmd_to_midi.py     examples/jazz-turnaround.mmd
+#   python tools/mmd_to_lilypond.py examples/jazz-turnaround.mmd
+#   python tools/mmd_transposer.py  examples/jazz-turnaround.mmd --transpose +2
+
+@TITLE: Midnight Changes
+@BPM: 132
+@TIME: 4/4
+@KEY: C
+@TRACKS: T1=Melody, T2=Comp, T3=Bass
+
+[CLEF:T1:treble]
+[CLEF:T2:bass]
+[CLEF:T3:bass]
+
+[DYN:mf]
+
+# ── C1: Chord symbols (lead-sheet annotations) ────────────────────────────────
+# C-tracks carry text labels synchronized to the beat grid.
+# The symbol occupies beat 1; empty slots fill the remaining beats.
+
+C1: Dm7;  ; ; | Dm7;   ; ; | G7;    ; ; | G7;    ; ; |
+  | Cmaj7; ; ; | Cmaj7; ; ; | A7;    ; ; | A7;    ; ; |.
+
+# ── T1: Melody ────────────────────────────────────────────────────────────────
+# Quarter-note bebop melody targeting chord tones on strong beats.
+# Half notes in even-numbered measures create phrase breathing room.
+#   M1/M2: Dm7 — opens on the 5th (A4), resolves through F4 (3rd) to D4 root
+#   M3/M4: G7  — F4 (7th) to B4 (3rd) signals the dominant tritone
+#   M5/M6: Cmaj7 — ascending arpeggio, returns to 3rd (E4) at phrase end
+#   M7/M8: A7  — stepwise descent from E5 lands on A4 root to close
+
+T1: A4/4; C5/4; F4/4; E4/4 | D4/2;  ;      G4/4; A4/4 |
+  | F4/4; B4/4; D5/4; C5/4 | B4/2;  ;      A4/4; G4/4 |
+  | E4/4; G4/4; B4/4; D5/4 | C5/2;  ;      G4/4; E4/4 |
+  | A4/4; G4/4; C#5/4; E5/4 | D5/4; C#5/4; A4/2;      |.
+
+# ── T2: Comping (shell voicings) ──────────────────────────────────────────────
+# Shell voicings: root + 3rd + 5th + 7th. Two patterns alternate:
+#
+#   Odd measures  (M1,M3,M5,M7): R/4 ; chord/4 ; R/4 ; R/8,chord/8
+#   Even measures (M2,M4,M6,M8): chord/4 ; R/4 ; R/4 ; R/8,chord/8
+#
+# The R/8,[voicing]/8 in beat 4 places the chord on the "and-of-4" —
+# a jazz anticipation that pushes harmonically into the next downbeat.
+# See spec §8.2: comma separates sub-beat events within one beat slot.
+#
+# Chord voicings:
+#   Dm7:   [D3,F3,A3,C4]   root · min3 · 5th · min7
+#   G7:    [G2,F3,B3,D4]   root · min7(F) · maj3(B) · 5th  ← F↔B tritone
+#   Cmaj7: [C3,E3,G3,B3]   root · maj3 · 5th · maj7
+#   A7:    [A2,C#3,E3,G3]  root · maj3(C#) · 5th · min7   ← C# explicit
+
+T2: R/4; [D3,F3,A3,C4]/4;            R/4; R/8,[D3,F3,A3,C4]/8 |
+  | [D3,F3,A3,C4]/4;            R/4; R/4; R/8,[D3,F3,A3,C4]/8 |
+  | R/4; [G2,F3,B3,D4]/4;            R/4; R/8,[G2,F3,B3,D4]/8 |
+  | [G2,F3,B3,D4]/4;            R/4; R/4; R/8,[G2,F3,B3,D4]/8 |
+  | R/4; [C3,E3,G3,B3]/4(arp);       R/4; R/8,[C3,E3,G3,B3]/8 |
+  | [C3,E3,G3,B3]/4;            R/4; R/4; R/8,[C3,E3,G3,B3]/8 |
+  | R/4; [A2,C#3,E3,G3]/4;           R/4; R/8,[A2,C#3,E3,G3]/8 |
+  | [A2,C#3,E3,G3]/4;           R/4; R/4; R/8,[A2,C#3,E3,G3]/8 |.
+
+# ── T3: Walking Bass ──────────────────────────────────────────────────────────
+# One quarter note per beat — the jazz "walking" pattern.
+# Each measure's final note approaches the next chord's root:
+#   M1 (Dm7): ...G2  —  root of G7 = same note, direct arrival
+#   M2 (Dm7): ...G2  —  leads into M3 G7 root
+#   M4 (G7):  ...Bb2→B2  —  chromatic half-step up to C3 (Cmaj7 root)
+#   M6 (Cmaj7): ...Bb2→A2 — chromatic descent to A7 root
+#   M8 (A7): ...C3→D3  — stepwise approach back toward Dm7
+
+T3: D2/4; F2/4; A2/4; G2/4  | D2/4; E2/4; F2/4;  G2/4  |
+  | G2/4; B2/4; D3/4; F3/4  | G2/4; A2/4; Bb2/4; B2/4  |
+  | C3/4; E3/4; G3/4; B3/4  | C3/4; B2/4; Bb2/4; A2/4  |
+  | A2/4; C#3/4; E3/4; G3/4 | A2/4; B2/4; C3/4;  D3/4  |.
