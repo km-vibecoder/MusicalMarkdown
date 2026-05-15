@@ -15,7 +15,10 @@ Musical Markdown is a plain-text format toolchain — a validator, formatter, an
 
 Please **do not open a public GitHub issue** for security vulnerabilities.
 
-Report privately by emailing **km.vibecoder@gmail.com** with:
+Use GitHub's private vulnerability reporting instead — it is only visible to the maintainer:
+👉 [Report a vulnerability](https://github.com/km-vibecoder/MusicalMarkdown/security/advisories/new)
+
+Include:
 - A description of the vulnerability and its potential impact
 - Steps to reproduce (a minimal `.mmd` file or browser payload that triggers the issue)
 - Any suggested fix, if you have one

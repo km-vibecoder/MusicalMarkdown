@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as contributors and maintainers pledge to make participation in this project a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, gender identity and expression, nationality, personal appearance, race, religion, or sexual identity and orientation.
+We as contributors and maintainers pledge to make participation in this project a beneficial experience focused on growth and development with dignity and respect for every person.
 
 ## Our Standards
 
@@ -25,6 +25,6 @@ This Code of Conduct applies in all project spaces — GitHub issues, pull reque
 
 ## Enforcement
 
-Instances of unacceptable behavior may be reported by contacting the maintainer at **km.vibecoder@gmail.com**. All reports will be reviewed and investigated promptly and fairly. The maintainer is obligated to maintain confidentiality.
+Instances of unacceptable behavior may be reported via [GitHub Discussions](https://github.com/km-vibecoder/MusicalMarkdown/discussions). All reports will be reviewed and investigated promptly and fairly. The maintainer is obligated to maintain confidentiality.
 
 Violations may result in a warning, temporary ban, or permanent removal from the project at the maintainer's discretion.
