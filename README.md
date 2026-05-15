@@ -21,7 +21,9 @@ mmd/
 ├── README.md                    # This file
 │
 ├── spec/
-│   └── musical-markdown-spec.md # The canonical language specification (v1.0 draft)
+│   ├── musical-markdown-spec.md                  # The canonical language specification (v1.0 draft)
+│   ├── musical-markdown-spec-claude-efficient.md  # Condensed spec for Claude (LLM context use)
+│   └── musical-markdown-spec-gemini-efficient.md  # Condensed spec for Gemini (LLM context use)
 │
 ├── tools/
 │   ├── mmd_validator.py         # Syntax validator / LLM spell-checker
@@ -79,7 +81,8 @@ L1: Do  ; Re  ; Mi  ; Fa    | Sol ;    ; Fa  ; Mi   |.
 - Commas separate subdivisions *within* a beat: `C4/8,D4/8` = two eighths in one beat.
 - Whitespace is insignificant. Visual column alignment is cosmetic only.
 
-Full syntax reference: `spec/musical-markdown-spec.md`
+Full syntax reference: `spec/musical-markdown-spec.md`  
+LLM-optimized versions: `spec/musical-markdown-spec-claude-efficient.md` · `spec/musical-markdown-spec-gemini-efficient.md`
 
 ---
 

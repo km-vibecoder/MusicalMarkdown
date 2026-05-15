@@ -15,7 +15,13 @@ The canonical reference document for the .mmd standard. Covers the full syntax f
 
 ### `musical-markdown-spec-gemini-efficient.md`
 **The AI-optimized specification (Gemini Version).**
-A highly condensed version of the .mmd spec designed for token-efficiency in LLM context windows. Prioritizes information density, using compact notation and a logic-first structure to provide an AI with all necessary rules for reading and drafting .mmd files while minimizing token consumption. Ideal for inclusion in system prompts or few-shot context.
+A highly condensed version of the .mmd spec designed for token-efficiency in LLM context windows. Prioritizes information density, using compact notation and a logic-first structure to provide an AI with all necessary rules for reading and drafting .mmd files while minimizing token consumption. At ~47 lines it achieves maximum compression; best used when token budget is the primary constraint.
+
+---
+
+### `musical-markdown-spec-claude-efficient.md`
+**The AI-optimized specification (Claude Version).**
+A condensed spec (~200 lines, ~82% reduction from the full spec) structured around Claude's strengths: invariant-first ordering, dense reference tables for modifiers and global commands, grammar-style token anatomy, and an AI operations table with the exact arithmetic for transposition, inversion, retrograde, augmentation, and diminution. Covers all features of the full spec including the `(+)`/`(-)` dynamic-vs-articulation disambiguation, volta brackets, dual-voice notation, lyric track rules, and recommended internal event representation. Designed for use as system prompt context when generating, validating, or transforming `.mmd` files with Claude.
 
 ---
 
