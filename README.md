@@ -25,13 +25,14 @@ mmd/
 │
 ├── tools/
 │   ├── mmd_validator.py         # Syntax validator / LLM spell-checker
+│   ├── mmd_formatter.py         # HRExpand (alignment) / AICondense (optimization)
 │   ├── mmd_to_midi.py           # MIDI exporter (requires midiutil)
 │   ├── mmd_transposer.py        # Transpose, invert, retrograde, augment, diminish
 │   ├── mmd_to_lilypond.py       # LilyPond exporter for PDF sheet music
 │   └── mmd_llm_workflow.md      # Guide: using the validator in LLM feedback loops
 │
 └── tests/
-    └── test_mmd_validator.py    # 64-test validator test suite (stdlib unittest)
+    └── test_mmd_validator.py    # 71-test validator test suite (stdlib unittest)
 ```
 
 ---
@@ -41,8 +42,9 @@ mmd/
 | Component | Status | Notes |
 |-----------|--------|-------|
 | Specification v1.0 | ✅ Complete | Covers full syntax, EBNF grammar, AI impl notes |
-| Syntax validator | ✅ Complete | Zero deps, Python 3.9+, JSON + text output |
-| Validator test suite | ✅ Complete | 64 tests, 100% passing |
+| Syntax validator | ✅ Complete | Support for tuplets, multi-voice, and ties |
+| Validator test suite | ✅ Complete | 71 tests, 100% passing |
+| Formatters | ✅ Complete | `mmd_formatter.py` — expand/condense modes |
 | LLM workflow guide | ✅ Complete | 3 integration patterns with code |
 | MIDI export | ✅ Complete | `mmd_to_midi.py` — midiutil, multi-track, dynamics |
 | Sheet music render | ✅ Complete | `mmd_to_lilypond.py` — LilyPond .ly, multi-staff, PDF-ready |
@@ -102,6 +104,18 @@ python tests/test_mmd_validator.py -v   # verbose
 ```
 
 Exit codes: `0` = valid, `1` = errors, `2` = IO error.
+
+---
+
+## Formatter Quick Start
+
+```bash
+# HRExpand: Align tracks into visual columns for human readability
+python tools/mmd_formatter.py score.mmd --expand
+
+# AICondense: Strip all non-functional whitespace for token efficiency
+python tools/mmd_formatter.py score.mmd --condense
+```
 
 ---
 

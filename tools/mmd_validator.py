@@ -28,16 +28,21 @@ class ParseState:
     time_num:int=4; time_den:int=4; key:str="C"; bpm:int=120
     measure_counts:dict=field(default_factory=dict)
     errors:list=field(default_factory=list)
+    tuplet_stack:list=field(default_factory=list)
+    last_dur:Optional[float]=None # unscaled duration for inheritance
 
 # ── Patterns ──────────────────────────────────────────────────────────────────
 RE_HEADER = re.compile(r'^@(\w+)\s*:\s*(.+)$')
 RE_CMD    = re.compile(r'^\[([A-Z][A-Z0-9_/]*|/[A-Z][A-Z0-9_]*)(?::([^\]]*))?\]$')
 RE_TRACK  = re.compile(r'^([TLPCtlpc]\d+)\s*:(.+)$')
 RE_CONT   = re.compile(r'^\s*\|(.+)$')
-RE_NOTE   = re.compile(r'^([A-Ga-g])(#{1,2}|b{1,2}|n)?([0-9])(/(\d+)(\.{0,2}))?(~[A-Ga-g][#b]?[0-9](/\d+[.]{0,2})?)?(\([^)]*\))*$')
-RE_REST   = re.compile(r'^R(/(\d+)(\.{0,2})|/M)(\([^)]*\))*$')
+RE_NOTE   = re.compile(r'^(~)?([A-Ga-g])(#{1,2}|b{1,2}|n)?([0-9])(/(\d+)(\.{0,2}))?(~)?(\([^)]*\))*$')
+RE_REST   = re.compile(r'^R(/(\d+)(\.{0,2})|/M)?(\([^)]*\))*$')
 RE_CHORD  = re.compile(r'^\[([^\]]+)\](/(\d+)(\.{0,2})?)?(/[A-Ga-g][#b]?)?(\([^)]*\))*$')
 RE_GRACE  = re.compile(r'^\{(!)?([^}]+)\}(.+)$')
+
+RE_TUPLET = re.compile(r'^\[(TUP:(\d+):(\d+)|TRP|QNT|SPT)\]$')
+RE_TUPLET_END = re.compile(r'^\[/(TUP|TRP|QNT|SPT)\]$')
 
 NAMED_TIME = {'C':(4,4),'C|':(2,2)}
 VALID_KEYS = {'C','G','D','A','E','B','F#','C#','F','Bb','Eb','Ab','Db','Gb','Cb',
@@ -45,7 +50,7 @@ VALID_KEYS = {'C','G','D','A','E','B','F#','C#','F','Bb','Eb','Ab','Db','Gb','Cb
 VALID_DYN  = {'ppp','pp','p','mp','mf','f','ff','fff'}
 VALID_CLEF = {'treble','bass','alto','tenor','treble8vb','treble8va','percussion'}
 VALID_TEMPO= {'accel','rit','rall','ato','rubato'}
-PITCHED    = {'T'}   # track prefixes needing duration validation
+PITCHED    = {'T', 'P'}   # track prefixes needing duration validation
 
 # ── Duration helpers ──────────────────────────────────────────────────────────
 def dur_qn(denom:int, dots:str) -> float:
@@ -80,48 +85,38 @@ def strip_ws(s:str) -> str: return re.sub(r'[ \t]+','',s)
 # ── Beat-slot token splitter ──────────────────────────────────────────────────
 def split_slot(slot:str):
     """Return list of (token, is_command) from a single beat slot (no whitespace)."""
-    tokens=[]; s=slot
-    while s:
-        if s.startswith('['):
-            end=s.find(']')
-            if end==-1: tokens.append((s,False)); break
-            bk=s[:end+1]
-            if RE_CMD.match(bk): tokens.append((bk,True)); s=s[end+1:]
-            else:                 # chord
-                ce=_chord_end(s); tokens.append((s[:ce],False)); s=s[ce:]
-                if s.startswith(','): s=s[1:]
-        else:
-            c=s.find(','); tokens.append((s if c==-1 else s[:c],False))
-            if c==-1: break
-            s=s[c+1:]
+    tokens = []
+    # Combined regex for all Musical Markdown tokens.
+    # We stop at [ and { because they start blocks, and , ; | which are separators.
+    pattern = re.compile(
+        r'\[(TUP:[^\]]+|TRP|QNT|SPT)\]'
+        r'|\[/(TUP|TRP|QNT|SPT)\]'
+        r'|\[[A-Z][A-Z0-9_/]*(:[^\]]*)?\]'
+        r'|\[[^\]]+\][^,;\|\[\{]*'
+        r'|\{[^\}]+\}[^,;\|\[\{]*'
+        r'|[^,;\|\[\{]+'
+    )
+    for m in pattern.finditer(slot):
+        tok = m.group(0)
+        is_cmd = False
+        if tok.startswith('['):
+            if RE_CMD.match(tok) or RE_TUPLET.match(tok) or RE_TUPLET_END.match(tok):
+                is_cmd = True
+        tokens.append((tok, is_cmd))
     return tokens
 
-def _chord_end(s:str) -> int:
-    i=0; depth=0
-    while i<len(s):
-        if s[i]=='[': depth+=1
-        elif s[i]==']':
-            depth-=1
-            if depth==0: i+=1; break
-        i+=1
-    while i<len(s) and s[i] not in (',',';','|'):
-        if s[i]=='(':
-            e=s.find(')',i); i=e+1 if e!=-1 else len(s)
-        else: i+=1
-    return i
-
 # ── Token validation ──────────────────────────────────────────────────────────
-def val_token(raw:str, track:str, mnum:int, bnum:int,
-              st:ParseState, last:Optional[float]) -> Optional[float]:
+def val_token(raw:str, track:str, mnum:int, bnum:int, st:ParseState) -> Optional[float]:
     t=raw.strip()
+    if not t: return 0.0
+
+    # Slur markers < > and trailing commas (from split_slot over-match)
+    t = t.lstrip('<').rstrip('>').rstrip(',')
     if not t: return 0.0
 
     # Grace note
     g=RE_GRACE.match(t)
-    if g: return val_token(g.group(3),track,mnum,bnum,st,last)
-
-    # Slur wrapper
-    if t.startswith('<') and t.endswith('>'): return val_token(t[1:-1],track,mnum,bnum,st,last)
+    if g: return val_token(g.group(3),track,mnum,bnum,st)
 
     # Rest
     if t.startswith('R'):
@@ -130,11 +125,26 @@ def val_token(raw:str, track:str, mnum:int, bnum:int,
             st.errors.append(Error('error',track,mnum,bnum,
                 f"Malformed rest '{t}' — expected R/N, R/N., or R/M",t)); return None
         if '/M' in t: return meas_dur(st)
-        d,dots=int(m.group(2)),(m.group(3) or '')
-        if not is_p2(d):
+
+        raw_dur = None
+        if m.group(2):
+            d,dots=int(m.group(2)),(m.group(3) or '')
+            if not is_p2(d):
+                st.errors.append(Error('error',track,mnum,bnum,
+                    f"Rest '{t}': denominator {d} is not a power of 2",t)); return None
+            raw_dur = dur_qn(d,dots)
+            st.last_dur = raw_dur
+        elif st.last_dur is not None:
+            raw_dur = st.last_dur
+        else:
             st.errors.append(Error('error',track,mnum,bnum,
-                f"Rest '{t}': denominator {d} is not a power of 2",t)); return None
-        return dur_qn(d,dots)
+                f"Rest '{t}' has no duration and no previous note to inherit from",t)); return None
+
+        dur = raw_dur
+        if dur and st.tuplet_stack:
+            actual, normal = st.tuplet_stack[-1]
+            dur = dur * (normal / actual)
+        return dur
 
     # Chord
     if t.startswith('['):
@@ -146,29 +156,49 @@ def val_token(raw:str, track:str, mnum:int, bnum:int,
             if not RE_NOTE.match(p.strip()+'/4'):
                 st.errors.append(Error('error',track,mnum,bnum,
                     f"Invalid pitch '{p.strip()}' inside chord '{t}'",p.strip()))
+
         ds=m.group(3); dots=(m.group(4) or '') if m.group(4) else ''
+        raw_dur = None
         if ds:
             d=int(ds)
             if not is_p2(d):
                 st.errors.append(Error('error',track,mnum,bnum,
                     f"Chord '{t}': denominator {d} not a power of 2",t)); return None
-            return dur_qn(d,dots)
-        if last is None:
+            raw_dur = dur_qn(d,dots)
+            st.last_dur = raw_dur
+        elif st.last_dur is not None:
+            raw_dur = st.last_dur
+        else:
             st.errors.append(Error('error',track,mnum,bnum,
                 f"Chord '{t}' has no duration and no previous note to inherit from",t)); return None
-        return last
+
+        dur = raw_dur
+        if dur and st.tuplet_stack:
+            actual, normal = st.tuplet_stack[-1]
+            dur = dur * (normal / actual)
+        return dur
 
     # Plain note
     base=t.split('~')[0]
-    m=RE_NOTE.match(base)
-    if not m:
-        st.errors.append(Error('error',track,mnum,bnum,
-            f"Unrecognized token '{t}' — expected note (C4/4), rest (R/4), chord ([C4,E4]/4), or command ([BPM:120])",t))
-        return None
-    oct_=int(m.group(3)); ds=m.group(5); dots=(m.group(6) or '')
-    if oct_>8:
-        st.errors.append(Error('warning',track,mnum,bnum,
-            f"Note '{t}': octave {oct_} exceeds standard piano range (max 8)",t))
+
+    # Percussion tracks allow non-SPN identifiers (e.g. BD, SN)
+    if track.startswith('P'):
+        m = re.match(r'^(~)?([A-Z]+)(/(\d+)(\.{0,2}))?(~)?(\([^)]*\))*$', base)
+        if not m:
+            st.errors.append(Error('error',track,mnum,bnum,f"Malformed percussion token '{t}'",t)); return None
+        ds = m.group(4); dots = (m.group(5) or '')
+    else:
+        m=RE_NOTE.match(base)
+        if not m:
+            st.errors.append(Error('error',track,mnum,bnum,
+                f"Unrecognized token '{t}' — expected note (C4/4), rest (R/4), chord ([C4,E4]/4), or command ([BPM:120])",t))
+            return None
+        oct_=int(m.group(4)); ds=m.group(6); dots=(m.group(7) or '')
+        if oct_>8:
+            st.errors.append(Error('warning',track,mnum,bnum,
+                f"Note '{t}': octave {oct_} exceeds standard piano range (max 8)",t))
+
+    raw_dur = None
     if ds:
         d=int(ds)
         if d==0:
@@ -177,22 +207,79 @@ def val_token(raw:str, track:str, mnum:int, bnum:int,
         if not is_p2(d):
             st.errors.append(Error('error',track,mnum,bnum,
                 f"Note '{t}': denominator {d} not a power of 2 (valid: 1,2,4,8,16,32,64)",t)); return None
-        return dur_qn(d,dots)
-    if last is None:
+        raw_dur = dur_qn(d,dots)
+        st.last_dur = raw_dur
+    elif st.last_dur is not None:
+        raw_dur = st.last_dur
+    else:
         st.errors.append(Error('error',track,mnum,bnum,
             f"Note '{t}' has no duration and no previous note in this measure to inherit from",t)); return None
-    return last
+
+    # Handle tie sum if same-token tie like C4/4~C4/4
+    if '~' in t:
+        parts = [p for p in t.split('~') if p]
+        if len(parts) > 1:
+            total_raw_dur = 0.0; temp_last = st.last_dur
+            for p in parts:
+                m_p = RE_NOTE.match(p)
+                if not m_p: continue
+                p_ds = m_p.group(6); p_dots = m_p.group(7) or ''
+                if p_ds:
+                    p_dur = dur_qn(int(p_ds), p_dots); temp_last = p_dur
+                elif temp_last is not None:
+                    p_dur = temp_last
+                else: p_dur = 0.0
+                total_raw_dur += p_dur
+            if total_raw_dur > 0:
+                # Update st.last_dur to the LAST part of the tie?
+                # Spec: inheritance carries last explicit duration.
+                # If C4/4~C4/2, then last_dur should be 0.5 (quarter? no 0.5 is half).
+                st.last_dur = temp_last
+                dur = total_raw_dur
+                if dur and st.tuplet_stack:
+                    actual, normal = st.tuplet_stack[-1]
+                    dur = dur * (normal / actual)
+                return dur
+
+    dur = raw_dur
+    if dur and st.tuplet_stack:
+        actual, normal = st.tuplet_stack[-1]
+        dur = dur * (normal / actual)
+
+    return dur
+
 
 # ── Command validation ────────────────────────────────────────────────────────
 def val_cmd(tok:str, track, mnum, bnum, st:ParseState):
+    # Tuplet start
+    mt = RE_TUPLET.match(tok)
+    if mt:
+        kind = mt.group(1)
+        if kind == 'TRP':   st.tuplet_stack.append((3, 2))
+        elif kind == 'QNT': st.tuplet_stack.append((5, 4))
+        elif kind == 'SPT': st.tuplet_stack.append((7, 4))
+        elif kind.startswith('TUP:'):
+            parts = kind.split(':')
+            st.tuplet_stack.append((int(parts[1]), int(parts[2])))
+        return
+
+    # Tuplet end
+    me = RE_TUPLET_END.match(tok)
+    if me:
+        if st.tuplet_stack: st.tuplet_stack.pop()
+        else: st.errors.append(Error('error',track,mnum,bnum,f"Mismatched tuplet end '{tok}'",tok))
+        return
+
     m=RE_CMD.match(tok)
     if not m:
         st.errors.append(Error('error',track,mnum,bnum,f"Malformed command block '{tok}'",tok)); return
     cmd=m.group(1).upper().lstrip('/'); val=(m.group(2) or '').strip()
 
     if cmd=='BPM':
-        if not re.match(r'^\d+$',val) or int(val)<=0:
-            st.errors.append(Error('error',track,mnum,bnum,f"[BPM:{val}]: must be positive integer",tok))
+        # Allow numeric or common musical notation like ♩=120
+        clean_val = val.replace('♩','').replace('=','').strip()
+        if not clean_val.isdigit() or int(clean_val)<=0:
+            st.errors.append(Error('error',track,mnum,bnum,f"[BPM:{val}]: must contain positive integer",tok))
     elif cmd=='TEMPO':
         if val.split(':')[0].lower() not in VALID_TEMPO:
             st.errors.append(Error('warning',track,mnum,bnum,
@@ -231,41 +318,45 @@ def val_measure(body:str, track:str, mnum:int, st:ParseState):
         return   # valid by definition; no grid structure to check
 
     expected_semis = st.time_num-1
-    actual_semis   = body.count(';')
     is_pitched     = track[0].upper() in PITCHED
+    bu = beat_unit(st); expected_total = meas_dur(st)
 
-    if actual_semis != expected_semis:
-        st.errors.append(Error('error',track,mnum,None,
-            f"Semicolon count: got {actual_semis}, need {expected_semis} "
-            f"for {st.time_num}/{st.time_den} ({st.time_num} slots → {expected_semis} semicolons). "
-            f"Use empty ';' for held beats.",body[:80]))
+    voices = body.split('//')
+    for vi, voice in enumerate(voices):
+        actual_semis = voice.count(';')
+        if actual_semis != expected_semis:
+            st.errors.append(Error('error',track,mnum,None,
+                f"Semicolon count (voice {vi+1}): got {actual_semis}, need {expected_semis} "
+                f"for {st.time_num}/{st.time_den}. Use empty ';' for held beats.",voice[:80]))
 
-    if not is_pitched: return
+        if not is_pitched: continue
 
-    slots = body.split(';'); meas_total=0.0; last=None
-    bu=beat_unit(st); expected_total=meas_dur(st)
+        slots = voice.split(';'); meas_total=0.0
+        st.tuplet_stack = [] # Reset tuplet stack for each voice
+        st.last_dur = None   # Reset duration inheritance for each voice
 
-    for bi,slot in enumerate(slots):
-        bnum=bi+1; slot=slot.strip()
-        if not slot: continue
-        tlist=split_slot(slot); slot_total=0.0
-        for tok,is_cmd in tlist:
-            if is_cmd: val_cmd(tok,track,mnum,bnum,st); continue
-            d=val_token(tok,track,mnum,bnum,st,last)
-            if d is None or d==0.0: continue
-            last=d; slot_total+=d
-        note_toks = [tok for tok,is_cmd in tlist if not is_cmd and tok.strip()]
-        if len(note_toks) > 1 and slot_total > bu+1e-6:
-            st.errors.append(Error('error',track,mnum,bnum,
-                f"Beat slot {bnum} comma-subdivisions overfill one beat: {slot_total:.4f} QN "
-                f"but one beat = {bu:.4f} QN. Subdivisions must sum to exactly one beat.",slot))
-        meas_total+=slot_total
+        for bi,slot in enumerate(slots):
+            bnum=bi+1; slot=slot.strip()
+            if not slot: continue
+            tlist=split_slot(slot); slot_total=0.0
+            for tok,is_cmd in tlist:
+                if is_cmd: val_cmd(tok,track,mnum,bnum,st); continue
+                d=val_token(tok,track,mnum,bnum,st)
+                if d is None or d==0.0: continue
+                slot_total+=d
+            
+            note_toks = [tok for tok,is_cmd in tlist if not is_cmd and tok.strip()]
+            if len(note_toks) > 1 and slot_total > bu+1e-6:
+                st.errors.append(Error('error',track,mnum,bnum,
+                    f"Beat slot {bnum} (voice {vi+1}) comma-subdivisions overfill one beat: {slot_total:.4f} QN "
+                    f"but one beat = {bu:.4f} QN. Subdivisions must sum to exactly one beat.",slot))
+            meas_total+=slot_total
 
-    if abs(meas_total-expected_total)>1e-6 and meas_total>0:
-        st.errors.append(Error('error',track,mnum,None,
-            f"Measure total {meas_total:.4f} QN ≠ expected {expected_total:.4f} QN "
-            f"({st.time_num}/{st.time_den}). Check durations and held-beat placeholders.",
-            body[:80]))
+        if abs(meas_total-expected_total)>1e-6:
+            st.errors.append(Error('error',track,mnum,None,
+                f"Measure total (voice {vi+1}) {meas_total:.4f} QN ≠ expected {expected_total:.4f} QN "
+                f"({st.time_num}/{st.time_den}). Check durations and held-beat placeholders.",
+                voice[:80]))
 
 # ── Track line ────────────────────────────────────────────────────────────────
 def val_track(prefix:str, body:str, st:ParseState):
@@ -282,9 +373,10 @@ def val_track(prefix:str, body:str, st:ParseState):
 def val_header(key:str, val:str, st:ParseState):
     key=key.upper().strip(); val=val.strip()
     if key=='BPM':
-        if not val.isdigit() or int(val)<=0:
-            st.errors.append(Error('error',None,None,None,f"@BPM must be positive integer, got '{val}'",f"@BPM:{val}"))
-        else: st.bpm=int(val)
+        clean_val = val.replace('♩','').replace('=','').strip()
+        if not clean_val.isdigit() or int(clean_val)<=0:
+            st.errors.append(Error('error',None,None,None,f"@BPM must contain positive integer, got '{val}'",f"@BPM:{val}"))
+        else: st.bpm=int(clean_val)
     elif key=='TIME':
         r=parse_ts(val)
         if r is None:
@@ -325,11 +417,10 @@ def validate(source:str):
             f"Line {lno}: unrecognized content '{s[:60]}'",s[:60]))
 
     # Cross-track consistency
-    tcounts={t:c for t,c in st.measure_counts.items() if t[0].upper() in PITCHED}
-    if len(set(tcounts.values()))>1:
-        d=', '.join(f"{t}={c}" for t,c in sorted(tcounts.items()))
+    if len(st.measure_counts) > 1 and len(set(st.measure_counts.values())) > 1:
+        d=', '.join(f"{t}={c}" for t,c in sorted(st.measure_counts.items()))
         st.errors.append(Error('error',None,None,None,
-            f"Tone track measure counts inconsistent: {d}. All T-tracks must match."))
+            f"Track measure counts inconsistent: {d}. All tracks must match length."))
 
     return not any(e.severity=='error' for e in st.errors), st.errors, st
 

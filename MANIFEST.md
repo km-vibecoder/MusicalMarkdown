@@ -13,6 +13,12 @@ The canonical reference document for the .mmd standard. Covers the full syntax f
 
 ---
 
+### `musical-markdown-spec-gemini-efficient.md`
+**The AI-optimized specification (Gemini Version).**
+A highly condensed version of the .mmd spec designed for token-efficiency in LLM context windows. Prioritizes information density, using compact notation and a logic-first structure to provide an AI with all necessary rules for reading and drafting .mmd files while minimizing token consumption. Ideal for inclusion in system prompts or few-shot context.
+
+---
+
 ### `mmd_validator.py`
 **The syntax validator / spell-checker.**
 A zero-dependency Python 3.9+ command-line tool that parses and validates .mmd files against the spec. Reads from a file path or stdin; outputs a human-readable report (default) or structured JSON (`--json`). JSON output is designed as a direct LLM feedback payload — every error carries `track`, `measure`, `beat`, `message`, and `raw` fields so an LLM can locate and fix the exact offending token. Also provides a `--normalize` flag that strips all insignificant whitespace to produce a canonical form suitable for diffing two versions. Exit codes: `0` = valid, `1` = errors found, `2` = IO error.
@@ -41,7 +47,7 @@ echo "T1: C4/4;D4/4;E4/4;F4/4|" | python tools/mmd_validator.py -
 
 ### `test_mmd_validator.py`
 **The validator test suite.**
-64 unit tests organized into 8 test classes that verify the validator accepts all valid .mmd constructs and correctly rejects all known error patterns. Serves two purposes: regression protection when the validator is extended, and a readable catalog of valid vs. invalid .mmd examples that can be used as few-shot material in LLM prompts.
+71 unit tests organized into 11 test classes that verify the validator accepts all valid .mmd constructs and correctly rejects all known error patterns. Serves two purposes: regression protection when the validator is extended, and a readable catalog of valid vs. invalid .mmd examples that can be used as few-shot material in LLM prompts.
 
 **Test classes:**
 | Class | What it covers |
@@ -54,7 +60,7 @@ echo "T1: C4/4;D4/4;E4/4;F4/4|" | python tools/mmd_validator.py -
 | `TestChordErrors` | Invalid chord pitches and denominators |
 | `TestHeaderErrors` | Bad `@BPM`, `@TIME`, `@KEY` values |
 | `TestCommandErrors` | Invalid `[DYN]`, `[XPOSE]`, `[CLEF]` arguments |
-| `TestCrossTrackErrors` | Mismatched measure counts across T-tracks |
+| `TestCrossTrackErrors` | Mismatched measure counts across tracks |
 | `TestNormalize` | Canonical form output |
 | `TestDurationInheritance` | Edge cases for implicit duration carry-forward |
 
@@ -62,6 +68,21 @@ echo "T1: C4/4;D4/4;E4/4;F4/4|" | python tools/mmd_validator.py -
 ```bash
 python tests/test_mmd_validator.py        # summary
 python tests/test_mmd_validator.py -v     # verbose (one line per test)
+```
+
+---
+
+### `mmd_formatter.py`
+**The whitespace formatter.**
+Provides two primary modes for manipulating Musical Markdown layout without altering musical semantics. Zero external dependencies.
+
+- **`--expand` (HRExpand)**: Pads tracks with whitespace to align beat anchors (`;`) and bar lines (`|`) into vertical columns. This makes multi-track `.mmd` files instantly readable for humans by visually synchronizing simultaneous events.
+- **`--condense` (AICondense)**: Strips all non-functional whitespace to produce the most compact form possible. Reduces character count for token-efficient LLM prompts or programmatic transmission.
+
+**Usage:**
+```bash
+python tools/mmd_formatter.py score.mmd --expand
+python tools/mmd_formatter.py score.mmd --condense
 ```
 
 ---

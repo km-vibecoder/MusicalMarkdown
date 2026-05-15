@@ -158,6 +158,31 @@ class TestValidFiles(unittest.TestCase):
         # Should not crash
         self.assertIsInstance(errors, list)
 
+    def test_tuplets(self):
+        # Triplet: 3 eighths in 1 beat (2 eighths time)
+        self.assertTrue(is_valid("T1: [TRP] C4/8, D4/8, E4/8 [/TRP]; E4/4; F4/4; G4/4 |"))
+        # Quintuplet: 5 sixteenths in 1 beat (4 sixteenths time)
+        self.assertTrue(is_valid("T1: [QNT] C4/16, D4/16, E4/16, F4/16, G4/16 [/QNT]; E4/4; F4/4; G4/4 |"))
+        # Chord in triplet
+        self.assertTrue(is_valid("T1: [TRP] [C4,E4,G4]/8, [D4,F4,A4]/8, [E4,G4,B4]/8 [/TRP]; C4/4; G4/4; C4/4 |"))
+        # Rest in triplet
+        self.assertTrue(is_valid("T1: [TRP] C4/8, R/8, E4/8 [/TRP]; E4/4; F4/4; G4/4 |"))
+
+    def test_multi_voice(self):
+        self.assertTrue(is_valid("T1: C5/4; D5/4; E5/4; F5/4 // E4/4; F4/4; G4/4; A4/4 |"))
+
+    def test_bpm_relaxed(self):
+        self.assertTrue(is_valid("@BPM: ♩=120\nT1: C4/4;D4/4;E4/4;F4/4|"))
+        self.assertTrue(is_valid("[BPM: ♩=120]\nT1: C4/4;D4/4;E4/4;F4/4|"))
+
+    def test_tie_summation(self):
+        # C4/4~C4/4 is 2 beats. Beat 2 is empty. Total 4.0 ✓
+        self.assertTrue(is_valid("T1: C4/4~C4/4; ; E4/4; F4/4 |"))
+
+    def test_empty_measure_error(self):
+        self.assertFalse(is_valid("T1: ; ; ; |"))
+        self.assertTrue(has_error("T1: ; ; ; |", "measure total"))
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  Semicolon Count Errors  (§8.2 / §8.3)
@@ -383,6 +408,19 @@ class TestCrossTrackErrors(unittest.TestCase):
             "T2: C3/1;;;|G2/1;;;|\n"
         )
         self.assertTrue(is_valid(src))
+
+    def test_all_tracks_match_length(self):
+        src = (
+            "T1: C4/4;D4/4;E4/4;F4/4|\n"
+            "L1: Hel-;lo;there;friend|Extra;measure;here;|\n"
+        )
+        self.assertFalse(is_valid(src))
+        self.assertTrue(has_error(src, "match length"))
+
+    def test_percussion_track_validation(self):
+        # Percussion tracks are now in rhythmic list
+        self.assertTrue(is_valid("P1: BD/4; SD/4; BD/4; SD/4 |"))
+        self.assertFalse(is_valid("P1: BD/4; SD/4 |")) # too short for 4/4
 
 
 # ══════════════════════════════════════════════════════════════════════════════
