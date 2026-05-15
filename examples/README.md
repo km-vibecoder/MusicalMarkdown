@@ -44,5 +44,34 @@ python tools/mmd_transposer.py  examples/amazing-grace.mmd --transpose -2
 
 ---
 
-*More examples coming in Phase 3: jazz chord comping,
-transformation showcase (transposition / retrograde side-by-side).*
+### `transformation-showcase.mmd` — One Motif, Four Forms
+**Demonstrates:** transposition · inversion · retrograde · four simultaneous T-tracks · explicit accidentals (Bb4 vs A#4 enharmonic equivalence)
+
+A two-measure motif (`C4→G4` stepwise ascent, `A4→E4` stepwise descent) heard
+in four voices simultaneously. Each voice shows a different serial transformation:
+
+| Track | Transformation | CLI flag |
+|-------|----------------|----------|
+| T1 | Subject (original) | — |
+| T2 | Answer: transposed +7 semitones (perfect 5th up) | `--transpose +7` |
+| T3 | Inversion: mirrored around G4 — ascent becomes descent | `--invert G4` |
+| T4 | Retrograde: measures reversed, then notes within each reversed | `--retrograde` |
+
+Mute any single track in your DAW to hear each transformation in isolation.
+Augmentation (`--augment`) doubles note values to four measures and is noted
+in the file header as a CLI exercise.
+
+```bash
+python tools/mmd_validator.py   examples/transformation-showcase.mmd
+python tools/mmd_to_midi.py     examples/transformation-showcase.mmd
+python tools/mmd_to_lilypond.py examples/transformation-showcase.mmd
+
+# Reproduce any derived track from T1:
+python tools/mmd_transposer.py  examples/transformation-showcase.mmd --transpose +7 --track T1
+python tools/mmd_transposer.py  examples/transformation-showcase.mmd --invert G4    --track T1
+python tools/mmd_transposer.py  examples/transformation-showcase.mmd --retrograde   --track T1
+```
+
+---
+
+*More examples coming in Phase 3: jazz chord comping.*

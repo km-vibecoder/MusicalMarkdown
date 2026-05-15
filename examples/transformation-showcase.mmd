@@ -1,0 +1,64 @@
+# Musical Markdown (.mmd) — Example: Transformation Showcase
+#
+# A two-measure motif heard in four simultaneous voices: the original subject,
+# plus transposition, inversion, and retrograde. Mute any track in your DAW
+# to isolate and compare each transformation.
+#
+# What this demonstrates:
+#   - Transposition: same contour shifted +7 semitones (perfect 5th up)
+#   - Inversion: every interval mirrored around G4 — ascent becomes descent
+#   - Retrograde: notes played in reverse (measures reversed, then each
+#     measure's contents reversed) — the temporal mirror
+#   - Four simultaneous T-tracks in four-part texture
+#   - Explicit accidentals: Bb4 must be written out; @KEY is display-only
+#
+# Each T2/T3/T4 was derived from T1 via mmd_transposer.py:
+#   python tools/mmd_transposer.py examples/transformation-showcase.mmd --transpose +7   --track T1
+#   python tools/mmd_transposer.py examples/transformation-showcase.mmd --invert G4      --track T1
+#   python tools/mmd_transposer.py examples/transformation-showcase.mmd --retrograde     --track T1
+#
+# Augmentation (not shown — doubles note values to 4 measures):
+#   python tools/mmd_transposer.py examples/transformation-showcase.mmd --augment --track T1
+#
+# Run:
+#   python tools/mmd_validator.py   examples/transformation-showcase.mmd
+#   python tools/mmd_to_midi.py     examples/transformation-showcase.mmd
+#   python tools/mmd_to_lilypond.py examples/transformation-showcase.mmd
+
+@TITLE: Transformation Showcase — One Motif, Four Forms
+@BPM: 100
+@TIME: 4/4
+@KEY: C
+@TRACKS: T1=Subject, T2=Answer, T3=Inversion, T4=Retrograde
+
+[CLEF:T1:treble]
+[CLEF:T2:treble]
+[CLEF:T3:treble]
+[CLEF:T4:treble]
+
+# ── T1: Subject (original) ────────────────────────────────────────────────────
+# Stepwise ascent C4→G4 (M1), then stepwise descent A4→E4 (M2).
+# Eight quarter notes — the raw material for all three transformations.
+
+T1: C4/4; D4/4; E4/4; G4/4 | A4/4; G4/4; F4/4; E4/4 |.
+
+# ── T2: Answer — Transposed +7 semitones (perfect 5th up) ────────────────────
+# Every pitch raised 7 semitones: C4→G4, D4→A4, E4→B4, G4→D5, A4→E5 …
+# Contour is identical — only the register shifts. In fugal tradition,
+# this is the "answer" entering at the dominant.
+
+T2: G4/4; A4/4; B4/4; D5/4 | E5/4; D5/4; C5/4; B4/4 |.
+
+# ── T3: Inversion — Mirrored around G4 ───────────────────────────────────────
+# Each interval is reflected: a rising 2nd → falling 2nd, rising 3rd → falling 3rd.
+# G4 is the pivot axis and maps to itself. Bb4 must be written explicitly —
+# the key signature @KEY: C is display-only and never alters pitch names in .mmd.
+
+T3: D5/4; C5/4; Bb4/4; G4/4 | F4/4; G4/4; A4/4; Bb4/4 |.
+
+# ── T4: Retrograde — Subject played backwards ─────────────────────────────────
+# The retrograde algorithm reverses measure order first (M2 before M1),
+# then reverses the notes within each measure. The arch-shape of T1 becomes
+# its mirror image in time: the falling close of T1 becomes the opening of T4.
+
+T4: E4/4; F4/4; G4/4; A4/4 | G4/4; E4/4; D4/4; C4/4 |.
